@@ -10,3 +10,9 @@ export interface Transaction extends Balance {
 export interface SpendingMetrics extends Balance {
 	maxReached: boolean,
 }
+
+export interface TransactionMetrics {
+	transactions: Transaction[],
+	totalAvailablePoints: number,
+	totalPerPayer: Balance[]
+}
