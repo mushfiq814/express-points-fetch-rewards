@@ -42,7 +42,7 @@ Transactions are how reward points are added or reduced. They include the payer 
 ##### Request
 To retrieve all transactions made so far, make a get request to `/transactions` as follows. No body data is required.
 
-`GET` `http://localhost:3000/transactions`
+`GET http://localhost:3000/transactions`
 
 ##### Response
 
@@ -72,23 +72,23 @@ The response will contain a list of transactions (or an empty list if no transac
 ##### Request
 To add a new transaction, make a post request instead to `/transactions` as follows.
 
-`POST` `http://localhost:3000/transactions`
+`POST http://localhost:3000/transactions`
 
 The information associated with the new transaction must be provided in the body of the request in JSON format according to the following schema.
 
 ```json
 {
-	"payer": string,
-	"points": number,
-	"timestamp"?: string
+	"payer": "DANNON",
+	"points": 1000,
+	"timestamp": "2020-10-31T15:00:00Z"
 }
 ```
 
-| Attributes  | Required? | Description                                                             |
-|-------------|-----------|-------------------------------------------------------------------------|
-| `payer`     | REQUIRED  | the name of the payer                                                   |
-| `points`    | REQUIRED  | the amount of points associated with this transaction                   |
-| `timestamp` | OPTIONAL  | the timstamp of the transaction. If not provided, the current timestamp |
+| Attributes  | Type     | Required? | Description                                                             |
+|-------------|----------|-----------|-------------------------------------------------------------------------|
+| `payer`     | `string` | REQUIRED  | the name of the payer                                                   |
+| `points`    | `number` | REQUIRED  | the amount of points associated with this transaction                   |
+| `timestamp` | `string` | OPTIONAL  | the timstamp of the transaction. If not provided, the current timestamp |
 
 
 ##### Response
@@ -102,17 +102,17 @@ This endpoint provieds a way to spend existing points and returns an overview of
 ##### Request
 To spend points, make a post request to `/spend` as follows.
 
-`POST` `http://localhost:3000/spend`
+`POST http://localhost:3000/spend`
 
 The amount of points to spend should be specified in the body of the request in JSON format according to the following schema.
 
 ```json
-{ "points": number }
+{ "points": 5000 }
 ```
 
-| Attributes | Required? | Description                   |
-|------------|-----------|-------------------------------|
-| `points`   | REQUIRED  | the amount of points to spend |
+| Attributes | Type     | Required? | Description                   |
+|------------|----------|-----------|-------------------------------|
+| `points`   | `number` | REQUIRED  | the amount of points to spend |
 
 
 ### Check Balance: `/balance`
@@ -122,7 +122,7 @@ This endpoint provides a way to check the current balance of points per payer ac
 ##### Request
 To check balance, make a get request to `/balance` as follows. No body data is required.
 
-`GET` `http://localhost:3000/balance`
+`GET http://localhost:3000/balance`
 
 ##### Response
 The response will contain the current total balance grouped by the existing payers. For instance
