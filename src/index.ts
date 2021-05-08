@@ -2,6 +2,7 @@ import { Transaction } from './types';
 import { spendPoints } from './spendPoints';
 import express from 'express';
 const app = express();
+app.use(express.json());
 
 const transactions: Transaction[] = [];
 
