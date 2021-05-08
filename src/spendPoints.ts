@@ -1,27 +1,30 @@
-import { Balance, SpendingMetrics, Transaction } from "./types";
+import {
+	Balance,
+	SpendingMetrics,
+	Transaction,
+	TransactionMetrics
+} from "./types";
 
-export const spendPoints = (pointsRemaining: number, transactions: Transaction[]): SpendingMetrics[] => {
-	// get a list of all payers in current transactions list
-	const payers = transactions.map(trans => trans.payer)
-	// convert to Set (and back to array) to remove duplicates
-	const uniquePayers: string[] = [...new Set(payers)];
+/**
+ * calculate spending balance based on points to spend and
+ * current transactionMetrics
+ */
+export const spendPoints = (
+	pointsRemaining: number,
+	transactionMetrics: TransactionMetrics
+): { // define return signature
+	spending: Balance[],
+	transactionMetrics: TransactionMetrics
+} => {
 
-	let payerBalance: Balance[] = [];
+	// gather fields from transaction metrics
+	const transactions = transactionMetrics.transactions;
+	const totalPerPayer = transactionMetrics.totalPerPayer;
+	const totalAvailablePoints = transactionMetrics.totalAvailablePoints;
 
-	// go through each unique payer
-	uniquePayers.forEach(payer => {
-		let onlyThisPayersPoints = transactions
-			// filter out only this payer's transactions
-			.filter(trans => trans.payer === payer)
-			// retrieve only the points
-			.map(trans => trans.points)
-			// accumulate all points
-			.reduce((a,c) => a + c);
-
-		payerBalance.push({ payer: payer, points: onlyThisPayersPoints });
-	});
-
-	console.log('payerBalance', payerBalance);
+	// if sufficient points are not available, return with no result
+	if (pointsRemaining > totalAvailablePoints)
+		return { spending: [], transactionMetrics: transactionMetrics };
 
 	// sort compare function to compare by timestamp
 	const compareByTimestamp = (t1: Transaction, t2: Transaction): number => {
@@ -36,7 +39,7 @@ export const spendPoints = (pointsRemaining: number, transactions: Transaction[]
 	transactions.sort(compareByTimestamp);
 
 	// to store spending metrics
-	let spending: SpendingMetrics[] = [];
+	let spendingMetrics: SpendingMetrics[] = [];
 
 	// loop through each transaction
 	for (let i=0; i<transactions.length; i++) {
@@ -48,65 +51,93 @@ export const spendPoints = (pointsRemaining: number, transactions: Transaction[]
 		if (currPoints > pointsRemaining) currPoints = pointsRemaining;
 		
 		// check current payer available points
-		let currPayerBalance = payerBalance.filter(p => p.payer == currPayer);
+		let currPayerBalance = totalPerPayer.filter(p => p.payer == currPayer);
 		let availablePoints = currPayerBalance.length
 			? currPayerBalance[0].points
 			: 0;
 
 		// check if current payer is already in spending list
 		// this returns an index to the spending item
-		let existingPayerIndex = spending.findIndex(s => s.payer == currPayer);
+		let existingPayerIndex =
+			spendingMetrics.findIndex(s => s.payer == currPayer);
 
-		let maxReached = existingPayerIndex > -1
-			? spending[existingPayerIndex].maxReached
-			: false;
-		let newPoints = 0;
-		let spentThisTime = 0;
-		// if payer exists in spending list, update their points
-		if (existingPayerIndex > -1) {
-			if (!spending[existingPayerIndex].maxReached) {
-				newPoints = spending[existingPayerIndex].points + currPoints;
-				spentThisTime = currPoints;
-				if (newPoints > availablePoints) {
-					newPoints = availablePoints;
-					spentThisTime = newPoints;
-					maxReached = true;
-				}
-				spending[existingPayerIndex].points = newPoints;
-			}
-		}
+		// update max reached flag if payer points are less
+		// than what curr points balance indicates
+		let maxReached = availablePoints < currPoints;
 
-		// otherwise, add current payer to spending
-		else {
-			newPoints = currPoints;
-			if (newPoints > availablePoints) {
-				newPoints = availablePoints;
-				maxReached = true;
-			}
-			spending.push({
+		// update how much was spent this loop
+		let spentThisTime = maxReached ? availablePoints : currPoints;
+
+		// if it's a new payer, add them to spending metrics
+		if (existingPayerIndex < 0) {
+			// append to spending metrics with relevant data
+			spendingMetrics.push({
 				payer: currPayer,
-				points: newPoints,
+				points: spentThisTime,
 				maxReached: maxReached
 			});
-			spentThisTime = newPoints;
 		}
 
-		// decrement spending points
+		// otherwise, if payer exists in spending list and if not already reached
+		// max points for payer, update their points
+		else if (existingPayerIndex > -1
+			&& !spendingMetrics[existingPayerIndex].maxReached) {
+
+			// calculate new points for this payer
+			const newPoints = maxReached
+				// if max has been reached, we can only still spend available points
+				? availablePoints
+				// otherwise, increment by however much we decide to spend this time
+				: spendingMetrics[existingPayerIndex].points + spentThisTime;
+
+			spendingMetrics[existingPayerIndex].points = newPoints;
+		}
+
+		// otherwise, no points were spent this loop
+		else spentThisTime = 0;
+
+		// decrement spending points by amount spent this loop
 		pointsRemaining -= spentThisTime;
 
-		// console.log('spending', spending);
-		console.log('points', pointsRemaining);
-
-		// if all required spending points are available, end loop
+		// if all required spending points are available and have been added to
+		// spending list, end loop
 		if (pointsRemaining <= 0) break;
 	}
 
-	// check if we ran out of points
-	if (pointsRemaining > 0) console.log('not enough points!');
+	// if we ran out of points at end of traversing through transactions,
+	// then return with empty result
+	if (pointsRemaining > 0)
+		return { spending: [], transactionMetrics: transactionMetrics };
+
+	// use object destructuring to remove maxReached from spendingMetrics for
+	// final output
+	let spending = spendingMetrics.map(({ maxReached, ...rest }) => rest);
 
 	// convert spending points to negative values
 	spending.map(items => items.points *= -1);
 
+	// remove entries from spending if they contain 0 points
+	// NOTE: I am not sure if this is a requirement,
+	// this can easily be reverted if not
+	spending = spending.filter(s => s.points != 0);
+
+	// reduce points from transactionMetrics by the amounts in spending
+	spending.forEach(sb => {
+		// go through each payer totals and compare
+		for (let i=0; i<totalPerPayer.length; i++) {
+			// if the payer is found in the list, update the new balance and
+			// break out of loop
+			if (totalPerPayer[i].payer === sb.payer) {
+				totalPerPayer[i].points += sb.points;
+				break;
+			}
+		}
+	});
+
+	// update transactionMetrics with new totalPerPayer
+	transactionMetrics.totalPerPayer = totalPerPayer;
+
 	// return spending metrics
-	return spending;
+	return { spending, transactionMetrics };
 }
+
