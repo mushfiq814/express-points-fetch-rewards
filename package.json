@@ -1,10 +1,11 @@
 {
   "name": "express-points-fetch-rewards",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A web server made with express+NodeJS to manage user points balances. This is a programming assesment for a Fetch Rewards Backend position.",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+		"compile": "tsc",
+		"start": "node dist/index.js"
   },
   "repository": {
     "type": "git",
