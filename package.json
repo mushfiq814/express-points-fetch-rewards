@@ -4,8 +4,8 @@
   "description": "A web server made with express+NodeJS to manage user points balances. This is a programming assesment for a Fetch Rewards Backend position.",
   "main": "dist/index.js",
   "scripts": {
-		"compile": "tsc",
-		"start": "node dist/index.js"
+    "compile": "tsc",
+    "start": "node dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -19,6 +19,8 @@
   "homepage": "https://github.com/mushfiq814/express-points-fetch-rewards#readme",
   "devDependencies": {
     "@types/express": "^4.17.11",
+    "@types/lodash": "^4.14.168",
+    "lodash": "^4.17.21",
     "ts-loader": "^9.1.2",
     "typescript": "^4.2.4"
   },
