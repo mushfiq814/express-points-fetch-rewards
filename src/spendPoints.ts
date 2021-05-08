@@ -39,10 +39,10 @@ export const spendPoints = (pointsRemaining: number, transactions: Transaction[]
 	let spending: SpendingMetrics[] = [];
 
 	// loop through each transaction
-	transactions.forEach(transaction => {
+	for (let i=0; i<transactions.length; i++) {
 		// get payer and points for current transaction
-		let currPayer = transaction.payer;
-		let currPoints = transaction.points;
+		let currPayer = transactions[i].payer;
+		let currPoints = transactions[i].points;
 
 		// update currPoints if we have more points from payer than we require
 		if (currPoints > pointsRemaining) currPoints = pointsRemaining;
@@ -94,12 +94,12 @@ export const spendPoints = (pointsRemaining: number, transactions: Transaction[]
 		// decrement spending points
 		pointsRemaining -= spentThisTime;
 
-		console.log('spending', spending);
+		// console.log('spending', spending);
 		console.log('points', pointsRemaining);
 
 		// if all required spending points are available, end loop
-		if (pointsRemaining <= 0) return;
-	})
+		if (pointsRemaining <= 0) break;
+	}
 
 	// check if we ran out of points
 	if (pointsRemaining > 0) console.log('not enough points!');
