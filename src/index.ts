@@ -21,7 +21,8 @@ app.post('/transactions', (req, res) => {
 	const transaction: Transaction = {
 		payer: req.body.payer,
 		points: req.body.points,
-		timestamp: req.body.timestamp,
+		// if timestamp is not given, default to current datetime
+		timestamp: req.body.timestamp ? req.body.timestamp : new Date(),
 	}
 
 	// add transaction to list of transactions
