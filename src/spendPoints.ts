@@ -1,6 +1,28 @@
-import { SpendingMetrics, Transaction } from "./types";
+import { Balance, SpendingMetrics, Transaction } from "./types";
 
 export const spendPoints = (points: number, transactions: Transaction[]): SpendingMetrics[] => {
+	// get a list of all payers in current transactions list
+	const payers = transactions.map(trans => trans.payer)
+	// convert to Set (and back to array) to remove duplicates
+	const uniquePayers: string[] = [...new Set(payers)];
+
+	let payerBalance: Balance[] = [];
+
+	// go through each unique payer
+	uniquePayers.forEach(payer => {
+		let onlyThisPayersPoints = transactions
+			// filter out only this payer's transactions
+			.filter(trans => trans.payer === payer)
+			// retrieve only the points
+			.map(trans => trans.points)
+			// accumulate all points
+			.reduce((a,c) => a + c);
+
+		payerBalance.push({ payer: payer, points: onlyThisPayersPoints });
+	});
+
+	console.log('payerBalance', payerBalance);
+
 	// sort compare function to compare by timestamp
 	const compareByTimestamp = (t1: Transaction, t2: Transaction): number => {
 		// convert both timestamps to date objects
@@ -17,31 +39,67 @@ export const spendPoints = (points: number, transactions: Transaction[]): Spendi
 	let spending: SpendingMetrics[] = [];
 
 	// loop through each transaction
-	for (let i=0; i<transactions.length; i++) {
+	transactions.forEach(transaction => {
 		// get payer and points for current transaction
-		let currPayer = transactions[i].payer;
-		let currPoints = transactions[i].points;
+		let currPayer = transaction.payer;
+		let currPoints = transaction.points;
 
-		// if we only require part of currPoints, update currPoints
+		// update currPoints if we have more points from payer than we require
 		if (currPoints > points) currPoints = points;
 		
-		// decrement spending points by points from current transaction
-		points -= currPoints;
+		// check current payer available points
+		let currPayerBalance = payerBalance.filter(p => p.payer == currPayer);
+		let availablePoints = currPayerBalance.length
+			? currPayerBalance[0].points
+			: 0;
 
 		// check if current payer is already in spending list
 		// this returns an index to the spending item
 		let existingPayerIndex = spending.findIndex(s => s.payer == currPayer);
 
+		let maxReached = existingPayerIndex > -1
+			? spending[existingPayerIndex].maxReached
+			: false;
+		let newPoints = 0;
+		let spentThisTime = 0;
 		// if payer exists in spending list, update their points
-		if (existingPayerIndex > -1)
-			spending[existingPayerIndex].points += currPoints;
+		if (existingPayerIndex > -1) {
+			if (!spending[existingPayerIndex].maxReached) {
+				newPoints = spending[existingPayerIndex].points + currPoints;
+				spentThisTime = currPoints;
+				if (newPoints > availablePoints) {
+					newPoints = availablePoints;
+					spentThisTime = newPoints;
+					maxReached = true;
+				}
+				spending[existingPayerIndex].points = newPoints;
+			}
+		}
+
 		// otherwise, add current payer to spending
-		else
-			spending.push({ payer: currPayer, points: currPoints });
+		else {
+			newPoints = currPoints;
+			if (newPoints > availablePoints) {
+				newPoints = availablePoints;
+				maxReached = true;
+			}
+			spending.push({
+				payer: currPayer,
+				points: newPoints,
+				maxReached: maxReached
+			});
+			spentThisTime = newPoints;
+		}
+
+		// decrement spending points
+		points -= spentThisTime;
+
+		console.log('spending', spending);
+		console.log('points', points);
 
 		// if all required spending points are available, end loop
-		if (points <= 0) break;
-	}
+		if (points <= 0) return;
+	})
 
 	// check if we ran out of points
 	if (points > 0) console.log('not enough points!');
