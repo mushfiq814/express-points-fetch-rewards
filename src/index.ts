@@ -1,22 +1,23 @@
 import { Transaction } from './types';
+import { spendPoints } from './spendPoints';
 import express from 'express';
 const app = express();
 
 const transactions: Transaction[] = [];
 
 // default endpoint
-app.get('/', (req, res) => {
+app.get('/', (_, res) => {
 	res.send('Hello World');
 });
 
 // view transactions
-app.get('/transactions', (req, res) => {
+app.get('/transactions', (_, res) => {
 	res.send(transactions);
 })
 
 // add transactions
 app.post('/transactions', (req, res) => {
-	// create transaction object
+	// create transaction object from request body
 	const transaction: Transaction = {
 		payer: req.body.payer,
 		points: req.body.points,
@@ -28,6 +29,17 @@ app.post('/transactions', (req, res) => {
 
 	// send newly created transaction as response
 	res.send(transaction);
+})
+
+// spend points
+app.post('/spend', (req, res) => {
+	// get amount of points to spend from request body
+	const points = req.body.points;
+
+	// calculate spending metrics based on points and transactions so far
+	const spendingMetrics = spendPoints(points, transactions);
+
+	res.send(spendingMetrics);
 })
 
 const port = process.env.port || 3000;
