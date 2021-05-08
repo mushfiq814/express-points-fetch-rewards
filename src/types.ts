@@ -3,3 +3,8 @@ export interface Transaction {
 	points: number,
 	timestamp: string
 }
+
+export interface SpendingMetrics {
+	payer: string,
+	points: number,
+}
