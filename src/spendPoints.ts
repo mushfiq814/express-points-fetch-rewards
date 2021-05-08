@@ -1,6 +1,6 @@
 import { Balance, SpendingMetrics, Transaction } from "./types";
 
-export const spendPoints = (points: number, transactions: Transaction[]): SpendingMetrics[] => {
+export const spendPoints = (pointsRemaining: number, transactions: Transaction[]): SpendingMetrics[] => {
 	// get a list of all payers in current transactions list
 	const payers = transactions.map(trans => trans.payer)
 	// convert to Set (and back to array) to remove duplicates
@@ -45,7 +45,7 @@ export const spendPoints = (points: number, transactions: Transaction[]): Spendi
 		let currPoints = transaction.points;
 
 		// update currPoints if we have more points from payer than we require
-		if (currPoints > points) currPoints = points;
+		if (currPoints > pointsRemaining) currPoints = pointsRemaining;
 		
 		// check current payer available points
 		let currPayerBalance = payerBalance.filter(p => p.payer == currPayer);
@@ -92,17 +92,17 @@ export const spendPoints = (points: number, transactions: Transaction[]): Spendi
 		}
 
 		// decrement spending points
-		points -= spentThisTime;
+		pointsRemaining -= spentThisTime;
 
 		console.log('spending', spending);
-		console.log('points', points);
+		console.log('points', pointsRemaining);
 
 		// if all required spending points are available, end loop
-		if (points <= 0) return;
+		if (pointsRemaining <= 0) return;
 	})
 
 	// check if we ran out of points
-	if (points > 0) console.log('not enough points!');
+	if (pointsRemaining > 0) console.log('not enough points!');
 
 	// convert spending points to negative values
 	spending.map(items => items.points *= -1);
